@@ -35,6 +35,7 @@ Agar MikroTik Anda mengirimkan log ke aplikasi ini, jalankan perintah berikut di
 /system logging action add name=remoteLog target=remote remote=IP_SERVER_UBUNTU remote-port=514
 /system logging add topics=pppoe,info action=remoteLog
 
+```
 ⚙️ Catatan Pembaruan
 
 Jika Anda mengubah konfigurasi atau memperbarui repositori, hapus database lama agar tidak terjadi bentrok struktur:
