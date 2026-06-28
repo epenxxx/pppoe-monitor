@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  pppoe-monitor:
+    build: .
+    container_name: pppoe_monitor_app
+    restart: always
+    ports:
+      - "5050:5000"
+    volumes:
+      # Membaca log MikroTik dari syslog server Ubuntu host (Read-Only)
+      - /var/log/syslog:/var/log/syslog:ro
+      # Menyimpan database SQLite agar tidak hilang
+      - ./instance:/app/instance
