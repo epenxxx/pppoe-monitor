@@ -43,3 +43,6 @@ Jika Anda mengubah konfigurasi atau memperbarui repositori, hapus database lama 
 rm instance/database.db
 docker compose down
 docker compose up -d --build
+
+```
+Dibuat oleh ZYLVEmedia
