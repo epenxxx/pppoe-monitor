@@ -31,7 +31,6 @@
 
         <div class="row justify-content-center">
             <div class="col-md-6">
-                
                 {% if register_page %}
                 <div class="card p-4">
                     <h3 class="mb-3 text-center">Registrasi Admin</h3>
@@ -81,6 +80,10 @@
                         </div>
 
                         <h6 class="text-primary">API MikroTik</h6>
+                        <div class="mb-3">
+                            <label>Router Identity (Nama di Telegram)</label>
+                            <input type="text" name="router_identity" class="form-control" value="{{ config.router_identity or 'MIKROTIK' }}">
+                        </div>
                         <div class="row">
                             <div class="col-md-8 mb-3">
                                 <label>IP Router</label>
