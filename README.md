@@ -17,8 +17,8 @@ Sistem monitoring PPPoE MikroTik terpusat menggunakan Docker. Proyek ini mendeng
    cd pppoe-monitor
 
 2. Jalankan Docker Compose:
-   
-    docker compose up -d --build
+   ```bash
+   docker compose up -d --build
 
 3. Buka Port Firewall (Jika UFW aktif):
    
