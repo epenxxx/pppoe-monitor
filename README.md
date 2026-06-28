@@ -13,7 +13,7 @@ Sistem monitoring PPPoE MikroTik terpusat menggunakan Docker. Proyek ini mendeng
 
 1. **Clone Repositori:**
    ```bash
-   git clone [https://github.com/epenxxx/pppoe-monitor.git](https://github.com/epenxxx/pppoe-monitor.git)
+   git clone https://github.com/epenxxx/pppoe-monitor.git
    cd pppoe-monitor
 
 2. Jalankan Docker Compose:
@@ -21,9 +21,9 @@ Sistem monitoring PPPoE MikroTik terpusat menggunakan Docker. Proyek ini mendeng
    docker compose up -d --build
 
 3. Buka Port Firewall (Jika UFW aktif):
-   
-    sudo ufw allow 5050/tcp
-    sudo ufw allow 514/udp
+   ```bash
+   sudo ufw allow 5050/tcp
+   sudo ufw allow 514/udp
 
 4. Akses Dashboard:
     Buka browser dan akses http://<IP_SERVER_UBUNTU>:5050. Buat akun baru, lalu masukkan Token Telegram dan detail API MikroTik Anda.
@@ -31,15 +31,14 @@ Sistem monitoring PPPoE MikroTik terpusat menggunakan Docker. Proyek ini mendeng
 ⚙️ Konfigurasi di MikroTik
 
 Agar MikroTik Anda mengirimkan log ke aplikasi ini, jalankan perintah berikut di New Terminal MikroTik Anda (ganti IP_SERVER_UBUNTU dengan IP server Docker Anda):
-
+```bash
 /system logging action add name=remoteLog target=remote remote=IP_SERVER_UBUNTU remote-port=514
 /system logging add topics=pppoe,info action=remoteLog
 
-- Catatan Pembaruan
+⚙️ Catatan Pembaruan
 
 Jika Anda mengubah konfigurasi atau memperbarui repositori, hapus database lama agar tidak terjadi bentrok struktur:
-Bash
-
+```bash
 rm instance/database.db
 docker compose down
 docker compose up -d --build
