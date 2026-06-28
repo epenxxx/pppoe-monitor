@@ -6,13 +6,12 @@ import threading
 from bot import run_bot
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'ganti-dengan-kunci-rahasia-yang-kuat'
+app.config['SECRET_KEY'] = 'zylve-secret-key-2026'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Model Database
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
@@ -26,6 +25,7 @@ class Config(db.Model):
     router_port = db.Column(db.Integer)
     router_user = db.Column(db.String(100))
     router_pass = db.Column(db.String(150))
+    router_identity = db.Column(db.String(100))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -36,7 +36,7 @@ def load_user(user_id):
 def dashboard():
     config = Config.query.first()
     if not config:
-        config = Config(id=1, router_port=8728)
+        config = Config(id=1, router_port=8728, router_identity="MIKROTIK")
         db.session.add(config)
         db.session.commit()
 
@@ -46,9 +46,10 @@ def dashboard():
         config.router_ip = request.form.get('router_ip')
         config.router_port = int(request.form.get('router_port', 8728))
         config.router_user = request.form.get('router_user')
+        config.router_identity = request.form.get('router_identity')
         
         new_pass = request.form.get('router_pass')
-        if new_pass:  # Hanya update password jika diisi
+        if new_pass:
             config.router_pass = new_pass
             
         db.session.commit()
@@ -71,7 +72,7 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if User.query.first(): # Batasi hanya 1 akun yang bisa didaftarkan
+    if User.query.first():
         flash('Registrasi ditutup. Akun admin sudah ada.', 'warning')
         return redirect(url_for('login'))
 
@@ -97,8 +98,5 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     
-    # Jalankan bot PPPoE di thread terpisah agar tidak memblokir web server
     threading.Thread(target=run_bot, daemon=True).start()
-    
-    # Jalankan Flask app
     app.run(host='0.0.0.0', port=5000)
