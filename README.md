@@ -4,7 +4,7 @@ Cara Menjalankan di Server Ubuntu
 2. Letakkan semua file di atas sesuai struktur direktori.
 3. Buka terminal/SSH, masuk ke folder pppoe-monitor, lalu jalankan perintah:
 
-    docker-compose up -d --build
+    docker compose up -d --build
    
 4. Buka browser dan akses http://<IP-SERVER-UBUNTU>:5050
 5. Lakukan Registrasi Akun pertama kali (hanya bisa 1 akun demi keamanan).
