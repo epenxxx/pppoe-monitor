@@ -1,16 +1,45 @@
-Siapkan Bot telegram , Token bot dan Chatid
-Buat user read saja di mikrotik 
+# PPPoE Monitor by ZYLVEmedia
 
-Cara Menjalankan di Server Ubuntu
+Sistem monitoring PPPoE MikroTik terpusat menggunakan Docker. Proyek ini mendengarkan log jaringan secara langsung (Syslog UDP), menyinkronkan status user aktif, dan mengirimkan notifikasi *Login/Logout* secara real-time ke Telegram. Dilengkapi dengan Web Dashboard berbasis Flask untuk pengaturan yang mudah tanpa perlu menyentuh kode.
 
-1. Pastikan docker dan docker-compose sudah terinstal di server Ubuntu Anda.
-2. Letakkan semua file di atas sesuai struktur direktori.
-3. Buka terminal/SSH, masuk ke folder pppoe-monitor, lalu jalankan perintah:
+## Fitur Utama
+- **Web Dashboard:** Konfigurasi API Telegram, Router IP, dan Identity via antarmuka web (Port `5050`).
+- **Internal Syslog Server:** Menangkap log MikroTik via UDP Port `514` (Tanpa mapping file syslog OS).
+- **Auto-Sync:** Membaca data *Secrets* dan *Active* secara cerdas.
+- **Auto-Restart:** Sistem melakukan restart mandiri setiap 1 jam untuk menjaga stabilitas memori.
+- **Portable:** Berbasis Docker, mudah dipindahkan antar server Ubuntu/Linux.
 
-    docker compose up -d --build
+## 🚀 Cara Instalasi di Server Ubuntu
+
+1. **Clone Repositori:**
+   ```bash
+   git clone [https://github.com/epenxxx/pppoe-monitor.git](https://github.com/epenxxx/pppoe-monitor.git)
+   cd pppoe-monitor
+
+2. Jalankan Docker Compose:
    
-4. Buka browser dan akses http://<IP-SERVER-UBUNTU>:5050
-5. Lakukan Registrasi Akun pertama kali (hanya bisa 1 akun demi keamanan).
-6. Setelah login, Anda tinggal mengisi Token Telegram, Chat ID, dan konfigurasi API MikroTik Anda lalu klik Simpan.
+    docker compose up -d --build
 
-Skrip secara otomatis akan berjalan, tersinkronisasi, dan langsung mengirim notifikasi telegram saat ada log logged in atau logged out terbaca dari server!
+3. Buka Port Firewall (Jika UFW aktif):
+   
+    sudo ufw allow 5050/tcp
+    sudo ufw allow 514/udp
+
+4. Akses Dashboard:
+    Buka browser dan akses http://<IP_SERVER_UBUNTU>:5050. Buat akun baru, lalu masukkan Token Telegram dan detail API MikroTik Anda.
+
+⚙️ Konfigurasi di MikroTik
+
+Agar MikroTik Anda mengirimkan log ke aplikasi ini, jalankan perintah berikut di New Terminal MikroTik Anda (ganti IP_SERVER_UBUNTU dengan IP server Docker Anda):
+
+/system logging action add name=remoteLog target=remote remote=IP_SERVER_UBUNTU remote-port=514
+/system logging add topics=pppoe,info action=remoteLog
+
+- Catatan Pembaruan
+
+Jika Anda mengubah konfigurasi atau memperbarui repositori, hapus database lama agar tidak terjadi bentrok struktur:
+Bash
+
+rm instance/database.db
+docker compose down
+docker compose up -d --build
