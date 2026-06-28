@@ -36,6 +36,11 @@ Agar MikroTik Anda mengirimkan log ke aplikasi ini, jalankan perintah berikut di
 /system logging add topics=pppoe,info action=remoteLog
 
 ```
+Setelah semua di isi di Dasboard , restart Docker
+```
+docker compose up -d
+```
+
 ⚙️ Catatan Pembaruan
 
 Jika Anda mengubah konfigurasi atau memperbarui repositori, hapus database lama agar tidak terjadi bentrok struktur:
