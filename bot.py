@@ -6,9 +6,6 @@ import sqlite3
 from datetime import datetime
 from routeros_api import RouterOsApiPool
 
-SYSLOG = "/var/log/syslog"
-
-router_identity = "MIKROTIK"
 online_users = set()
 all_users = set()
 profiles = {}
@@ -17,16 +14,23 @@ login_pattern = re.compile(r'([^\s]+)\slogged\sin,\s(\d+\.\d+\.\d+\.\d+)')
 logout_pattern = re.compile(r'([^\s]+)\slogged\sout')
 
 def get_config():
-    """Mengambil konfigurasi terbaru dari database."""
     try:
         conn = sqlite3.connect('instance/database.db')
         c = conn.cursor()
-        c.execute("SELECT bot_token, chat_id, router_ip, router_port, router_user, router_pass FROM config WHERE id=1")
+        c.execute("SELECT bot_token, chat_id, router_ip, router_port, router_user, router_pass, router_identity FROM config WHERE id=1")
         row = c.fetchone()
         conn.close()
-        if row and all(row):
-            return {"BOT_TOKEN": row[0], "CHAT_ID": row[1], "ROUTER_IP": row[2], 
-                    "ROUTER_PORT": int(row[3]), "ROUTER_USER": row[4], "ROUTER_PASS": row[5]}
+        
+        if row and row[0] and row[1]:
+            return {
+                "BOT_TOKEN": row[0], 
+                "CHAT_ID": row[1], 
+                "ROUTER_IP": row[2], 
+                "ROUTER_PORT": int(row[3]), 
+                "ROUTER_USER": row[4], 
+                "ROUTER_PASS": row[5] or "",
+                "ROUTER_IDENTITY": row[6] or "MIKROTIK"
+            }
     except Exception:
         pass
     return None
@@ -56,19 +60,16 @@ async def telegram_worker(queue):
             await asyncio.sleep(0.05)
 
 async def sync_users():
-    global online_users, all_users, profiles, router_identity
+    global online_users, all_users, profiles
     cfg = get_config()
     if not cfg:
-        print("⚠️ Konfigurasi belum diatur di Dashboard.")
+        print("⚠️ Konfigurasi belum diatur di Web Dashboard.")
         return
 
     print("⏳ Sinkronisasi data dari MikroTik...")
     try:
         router = mikrotik_api(cfg)
         api = router.get_api()
-
-        for i in api.get_resource('/system/identity').get():
-            router_identity = i['name']
 
         for s in api.get_resource('/ppp/secret').get():
             if 'name' in s:
@@ -88,13 +89,18 @@ async def process(line, queue):
     global online_users
     login = login_pattern.search(line)
     logout = logout_pattern.search(line)
+    
+    cfg = get_config()
+    identity = cfg['ROUTER_IDENTITY'] if cfg else "MIKROTIK"
 
     if login:
-        user, ip = login.group(1), login.group(2)
+        user = login.group(1)
+        ip = login.group(2)
         online_users.add(user)
         offline = sorted(list(all_users - online_users))
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        pesan = (f"✅ LOGIN {router_identity}\nTime: {now}\n=======================\n"
+
+        pesan = (f"✅ LOGIN {identity}\nTime: {now}\n=======================\n"
                  f"User: {user}\nIP Client: {ip}\nProfile: {profiles.get(user, '-')}\n"
                  f"Total Secrets: {len(all_users)}\nTotal Active: {len(online_users)}\n"
                  f"Disconnected Users ({len(offline)}): {', '.join(offline) if offline else '-'}")
@@ -105,38 +111,48 @@ async def process(line, queue):
         online_users.discard(user)
         offline = sorted(list(all_users - online_users))
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        pesan = (f"❌ LOGOUT {router_identity}\nTime: {now}\n=======================\n"
+
+        pesan = (f"❌ LOGOUT {identity}\nTime: {now}\n=======================\n"
                  f"User: {user}\nProfile: {profiles.get(user, '-')}\n"
                  f"Total Secrets: {len(all_users)}\nTotal Active: {len(online_users)}\n"
                  f"Disconnected Users ({len(offline)}): {', '.join(offline) if offline else '-'}")
         await queue.put(pesan)
 
-async def follow(queue):
-    while not os.path.exists(SYSLOG):
-        print(f"⚠️ Menunggu file {SYSLOG}...")
-        await asyncio.sleep(5)
+class SyslogProtocol(asyncio.DatagramProtocol):
+    def __init__(self, queue):
+        self.queue = queue
 
-    print(f"🚀 Memantau log PPPoE dari {SYSLOG}...")
-    with open(SYSLOG, "r", encoding="utf-8", errors="ignore") as file:
-        file.seek(0, 2)
+    def datagram_received(self, data, addr):
+        line = data.decode('utf-8', errors='ignore')
+        low = line.lower()
+        if "logged in" in low or "logged out" in low:
+            if not any(err in low for err in ["failed", "failure", "invalid", "error", "authentication"]):
+                asyncio.create_task(process(line, self.queue))
+
+async def syslog_server(queue):
+    loop = asyncio.get_running_loop()
+    transport, protocol = await loop.create_datagram_endpoint(
+        lambda: SyslogProtocol(queue),
+        local_addr=('0.0.0.0', 514)
+    )
+    try:
         while True:
-            line = file.readline()
-            if not line:
-                await asyncio.sleep(0.1)
-                continue
-            low = line.lower()
-            if "logged in" in low or "logged out" in low:
-                if not any(err in low for err in ["failed", "failure", "invalid", "error", "authentication"]):
-                    asyncio.create_task(process(line, queue))
+            await asyncio.sleep(3600)
+    finally:
+        transport.close()
+
+async def auto_restart_timer():
+    await asyncio.sleep(3600)
+    os._exit(0)
 
 async def main():
     queue = asyncio.Queue()
     await sync_users()
     asyncio.create_task(telegram_worker(queue))
-    await follow(queue)
+    asyncio.create_task(auto_restart_timer())
+    await syslog_server(queue)
 
 def run_bot():
-    """Fungsi pembungkus untuk menjalankan asyncio loop dari thread lain."""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
