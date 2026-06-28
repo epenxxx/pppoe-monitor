@@ -1,3 +1,6 @@
+Siapkan Bot telegram , Token bot dan Chatid
+Buat user read saja di mikrotik 
+
 Cara Menjalankan di Server Ubuntu
 
 1. Pastikan docker dan docker-compose sudah terinstal di server Ubuntu Anda.
